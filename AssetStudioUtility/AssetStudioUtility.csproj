@@ -63,6 +63,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AudioClipConverter.cs" />
+    <Compile Include="Dummy.cs" />
     <Compile Include="FMOD Studio API\fmod.cs" />
     <Compile Include="FMOD Studio API\fmod_dsp.cs" />
     <Compile Include="FMOD Studio API\fmod_errors.cs" />
@@ -75,10 +76,6 @@
     <Compile Include="Texture2DConverter.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AssetStudioFBX\AssetStudioFBX.vcxproj">
-      <Project>{4f8ef5ef-732b-49cf-9eb3-b23e19ae6267}</Project>
-      <Name>AssetStudioFBX</Name>
-    </ProjectReference>
     <ProjectReference Include="..\AssetStudio\AssetStudio.csproj">
       <Project>{af56b63c-1764-41b7-9e60-8d485422ac3b}</Project>
       <Name>AssetStudio</Name>
