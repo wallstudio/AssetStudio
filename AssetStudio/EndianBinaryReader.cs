@@ -113,5 +113,142 @@ namespace AssetStudio
             }
             return base.ReadDouble();
         }
+
+        public override string ToString()
+        {
+            return $"<{Position}>" + base.ToString();
+        }
+
+        public byte[] Dump()
+        {
+            var pos = Position;
+            Position = 0;
+            var buf = new byte[pos];
+            Read(buf, 0, (int)pos);
+            return buf;
+        }
+
+        public byte[] Dump(int len)
+        {
+            var pos = Position;
+            var buf = new byte[len];
+            Read(buf, 0, len);
+            Position = pos;
+            return buf;
+        }
     }
+
+
+
+    public class EndianBinaryWriter : BinaryWriter
+    {
+        public EndianType endian;
+
+        public EndianBinaryWriter(Stream stream, EndianType endian = EndianType.BigEndian) : base(stream)
+        {
+            this.endian = endian;
+        }
+
+        public long Position
+        {
+            get => BaseStream.Position;
+            set => BaseStream.Position = value;
+        }
+
+
+        public override void Write(Int16 v)
+        {
+            var buff = BitConverter.GetBytes(v);
+            if (endian == EndianType.BigEndian)
+            {
+                Array.Reverse(buff);        
+            }
+            base.Write(buff, 0, buff.Length);
+        }
+
+        public override void Write(Int32 v)
+        {
+            var buff = BitConverter.GetBytes(v);
+            if (endian == EndianType.BigEndian)
+            {
+                Array.Reverse(buff);        
+            }
+            base.Write(buff, 0, buff.Length);
+        }
+
+        public override void Write(Int64 v)
+        {
+            var buff = BitConverter.GetBytes(v);
+            if (endian == EndianType.BigEndian)
+            {
+                Array.Reverse(buff);        
+            }
+            base.Write(buff, 0, buff.Length);
+        }
+
+        public override void Write(UInt16 v)
+        {
+            var buff = BitConverter.GetBytes(v);
+            if (endian == EndianType.BigEndian)
+            {
+                Array.Reverse(buff);         
+            }
+            base.Write(buff, 0, buff.Length);
+        }
+
+        public override void Write(UInt32 v)
+        {
+            var buff = BitConverter.GetBytes(v);
+            if (endian == EndianType.BigEndian)
+            {
+                Array.Reverse(buff);         
+            }
+            base.Write(buff, 0, buff.Length);
+        }
+
+        public override void Write(UInt64 v)
+        {
+            var buff = BitConverter.GetBytes(v);
+            if (endian == EndianType.BigEndian)
+            {
+                Array.Reverse(buff);         
+            }
+            base.Write(buff, 0, buff.Length);
+        }
+
+        public override void Write(Single v)
+        {
+            var buff = BitConverter.GetBytes(v);
+            if (endian == EndianType.BigEndian)
+            {
+                Array.Reverse(buff);         
+            }
+            base.Write(buff, 0, buff.Length);
+        }
+
+        public override void Write(Double v)
+        {
+            var buff = BitConverter.GetBytes(v);
+            if (endian == EndianType.BigEndian)
+            {
+                Array.Reverse(buff);         
+            }
+            base.Write(buff, 0, buff.Length);
+        }
+
+        public override string ToString()
+        {
+            return $"<{Position}>" + base.ToString();
+        }
+
+        public byte[] Dump()
+        {
+            var pos = Position;
+            Position = 0;
+            var buf = new byte[pos];
+            BaseStream.Read(buf, 0, (int)pos);
+            return buf;
+        }
+    }
+
 }

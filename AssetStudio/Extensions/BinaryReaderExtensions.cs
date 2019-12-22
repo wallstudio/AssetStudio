@@ -52,6 +52,13 @@ namespace AssetStudio
             return Encoding.UTF8.GetString(bytes.ToArray());
         }
 
+        public static void WriteStringInclusiveNull(this BinaryWriter writer, string str)
+        {
+            var buff = Encoding.UTF8.GetBytes(str);
+            writer.Write(buff, 0, buff.Length);
+            writer.Write((byte)0);
+        }
+
         public static Quaternion ReadQuaternion(this BinaryReader reader)
         {
             return new Quaternion(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());

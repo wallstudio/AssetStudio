@@ -24,11 +24,16 @@ namespace AssetStudio
         public string versionPlayer;
         public string versionEngine;
         public List<StreamFile> fileList = new List<StreamFile>();
+        public EndianBinaryWriter uc;
 
         public BundleFile(EndianBinaryReader bundleReader, string path)
         {
             this.path = path;
-            var signature = bundleReader.ReadStringToNull();
+            var dst = $"../../../uc_{Path.GetFileName(path)}";
+            if (File.Exists(dst)) File.Delete(dst);
+            uc = new EndianBinaryWriter(new FileStream(dst, FileMode.OpenOrCreate), EndianType.BigEndian);
+
+            var signature = bundleReader.ReadStringToNull(); uc.WriteStringInclusiveNull(signature);
             switch (signature)
             {
                 case "UnityWeb":
@@ -84,9 +89,9 @@ namespace AssetStudio
                     }
                 case "UnityFS":
                     {
-                        var format = bundleReader.ReadInt32();
-                        versionPlayer = bundleReader.ReadStringToNull();
-                        versionEngine = bundleReader.ReadStringToNull();
+                        var format = bundleReader.ReadInt32(); uc.Write(format);
+                        versionPlayer = bundleReader.ReadStringToNull(); uc.WriteStringInclusiveNull(versionPlayer);
+                        versionEngine = bundleReader.ReadStringToNull(); uc.WriteStringInclusiveNull(versionEngine);
                         if (format == 6)
                         {
                             ReadFormat6(bundleReader);
@@ -117,10 +122,10 @@ namespace AssetStudio
 
         private void ReadFormat6(EndianBinaryReader bundleReader, bool padding = false)
         {
-            var bundleSize = bundleReader.ReadInt64();
+            var bundleSize = bundleReader.ReadInt64(); uc.Write(bundleSize);
             int compressedSize = bundleReader.ReadInt32();
-            int uncompressedSize = bundleReader.ReadInt32();
-            int flag = bundleReader.ReadInt32();
+            int uncompressedSize = bundleReader.ReadInt32(); uc.Write(uncompressedSize); uc.Write(uncompressedSize);
+            int flag = bundleReader.ReadInt32(); uc.Write(flag & ~0x3F);
             if (padding)
                 bundleReader.ReadByte();
             byte[] blocksInfoBytes;
@@ -163,8 +168,8 @@ namespace AssetStudio
             }
             using (var blocksInfoReader = new EndianBinaryReader(blocksInfoStream))
             {
-                blocksInfoReader.Position = 0x10;
-                int blockcount = blocksInfoReader.ReadInt32();
+                blocksInfoReader.Position = 0x10; uc.Write(new byte[0x10]);
+                int blockcount = blocksInfoReader.ReadInt32(); uc.Write(blockcount);
                 var blockInfos = new BlockInfo[blockcount];
                 for (int i = 0; i < blockcount; i++)
                 {
@@ -174,6 +179,10 @@ namespace AssetStudio
                         compressedSize = blocksInfoReader.ReadUInt32(),
                         flag = blocksInfoReader.ReadInt16()
                     };
+
+                    uc.Write(blockInfos[i].uncompressedSize);
+                    uc.Write(blockInfos[i].uncompressedSize);
+                    uc.Write((short)(blockInfos[i].flag & ~0x3F));
                 }
                 Stream dataStream;
                 var uncompressedSizeSum = blockInfos.Sum(x => x.uncompressedSize);
@@ -211,17 +220,20 @@ namespace AssetStudio
                             //case 4:LZHAM?
                     }
                 }
-                dataStream.Position = 0;
+
+                
+                dataStream.Position = 0; var auc = new EndianBinaryWriter(new MemoryStream(), EndianType.BigEndian);
                 using (dataStream)
                 {
-                    var entryinfo_count = blocksInfoReader.ReadInt32();
+                    var entryinfo_count = blocksInfoReader.ReadInt32(); uc.Write(entryinfo_count);
                     for (int i = 0; i < entryinfo_count; i++)
                     {
                         var file = new StreamFile();
-                        var entryinfo_offset = blocksInfoReader.ReadInt64();
-                        var entryinfo_size = blocksInfoReader.ReadInt64();
-                        flag = blocksInfoReader.ReadInt32();
-                        file.fileName = Path.GetFileName(blocksInfoReader.ReadStringToNull());
+                        var entryinfo_offset = blocksInfoReader.ReadInt64(); uc.Write(entryinfo_offset);
+                        var entryinfo_size = blocksInfoReader.ReadInt64(); uc.Write(entryinfo_size);
+                        flag = blocksInfoReader.ReadInt32(); uc.Write(flag);
+                        var path = blocksInfoReader.ReadStringToNull(); uc.WriteStringInclusiveNull(path);
+                        file.fileName = Path.GetFileName(path);
                         if (entryinfo_size > int.MaxValue)
                         {
                             /*var memoryMappedFile = MemoryMappedFile.CreateNew(file.fileName, entryinfo_size);
@@ -236,10 +248,18 @@ namespace AssetStudio
                         }
                         dataStream.Position = entryinfo_offset;
                         dataStream.CopyTo(file.stream, entryinfo_size);
+                        dataStream.Position = entryinfo_offset;
+                        dataStream.CopyTo(auc.BaseStream, entryinfo_size);                      
                         file.stream.Position = 0;
                         fileList.Add(file);
                     }
                 }
+
+                var aucLen = auc.Position;
+                auc.Position = 0;
+                auc.BaseStream.CopyTo(uc.BaseStream, aucLen);
+                auc.Close();
+                uc.Close();
             }
         }
     }
