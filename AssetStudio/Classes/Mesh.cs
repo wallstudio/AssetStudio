@@ -174,7 +174,11 @@ namespace AssetStudio
                 GetStreams(version);
             }
 
-            m_DataSize = reader.ReadBytes(reader.ReadInt32());
+            var dataStart = reader.BaseStream.Position;
+            var s = reader.ReadInt32();
+            m_DataSize = reader.ReadBytes(s);
+            var dataEnd = reader.BaseStream.Position;
+
             reader.AlignStream();
         }
 
@@ -546,10 +550,21 @@ namespace AssetStudio
                 if (m_Use16BitIndices)
                 {
                     m_IndexBuffer = new uint[m_IndexBuffer_size / 2];
+                    var start = reader.Position;
+                    var startDump = reader.Dump(8);
+                    byte[] maskDump;
                     for (int i = 0; i < m_IndexBuffer_size / 2; i++)
                     {
-                        m_IndexBuffer[i] = reader.ReadUInt16();
+                        var value = reader.ReadUInt16();
+                        m_IndexBuffer[i] = value;
+
+                        if (i == 3720)
+                        {
+                            maskDump = reader.Dump(8);
+                        }
                     }
+                    var end = reader.Position;
+                    var endDump = reader.Dump(8);
                     reader.AlignStream();
                 }
                 else
@@ -741,6 +756,8 @@ namespace AssetStudio
                             {
                                 case 0: //kShaderChannelVertex
                                     m_Vertices = componentsFloatArray;
+                                    File.WriteAllLines(Guid.NewGuid() + ".idx", m_IndexBuffer.Select(v => v.ToString()).ToArray());
+                                    File.WriteAllLines(Guid.NewGuid() + ".vtx", m_Vertices.Select(v => v.ToString()).ToArray());
                                     break;
                                 case 1: //kShaderChannelNormal
                                     m_Normals = componentsFloatArray;
